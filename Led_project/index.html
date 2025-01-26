@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LED Circle Controller</title>
+    <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/classic.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        .circle-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 20px auto;
+            border-radius: 50%;
+            border: 1px solid #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .led {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: gray;
+            cursor: pointer;
+        }
+        #controls {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dune Weaver Lighting</h1>
+    <div class="circle-container">
+        <!-- LED placeholders -->
+        <script>
+// Generate 20 LEDs in a circular layout
+        const container = document.querySelector('.circle-container');
+        const ledCount = 20;
+        const radius = 140; // Radius of the circle
+        const centerX = container.offsetWidth / 2; // Center of the circle container
+        const centerY = container.offsetHeight / 2; // Center of the circle container
+
+        for (let i = 0; i < ledCount; i++) {
+                const angle = (i / ledCount) * Math.PI * 2;
+                const x = centerX + Math.cos(angle) * radius - 10; // Offset by LED size
+                const y = centerY + Math.sin(angle) * radius - 10;
+
+                const led = document.createElement('div');
+                led.classList.add('led');
+                led.setAttribute('data-id', i);
+                led.style.left = `${x}px`;
+                led.style.top = `${y}px`;
+                container.appendChild(led);
+            }
+        </script>
+    </div>
+
+    <div id="controls">
+        <button id="power-toggle">Power On/Off</button>
+        <label for="brightness">Brightness:</label>
+        <input type="range" id="brightness" min="0" max="255" value="128" />
+    </div>
+
+    <!-- New Animation Controls -->
+    <div id="animation-controls">
+        <label for="interval">Animation Speed (in seconds):</label>
+        <input type="number" id="interval" min="0.1" step="0.1" value="0.5" />
+        <button id="start-dissolve">Start Dissolve Animation</button>
+        <button id="stop-dissolve">Stop Dissolve Animation</button>
+    </div>
+
+    <div id="color-picker"></div>
+
+    <script>
+        // Initialize the color picker
+        const pickr = Pickr.create({
+            el: '#color-picker',
+            theme: 'classic', // or 'monolith', or 'nano'
+            default: '#ff0000',
+            components: {
+                // Main components
+                preview: true,
+                opacity: true,
+                hue: true,
+
+                // Input / output Options
+                interaction: {
+                    hex: true,
+                    rgba: true,
+                    input: true,
+                    save: true
+                }
+            }
+        });
+
+//Fetch and display current colors
+        window.addEventListener('DOMContentLoaded', () => {
+                fetch('/api/get_led_colors')
+                        .then(response => response.json())
+                        .then(data => {
+                                const colors = data.colors;
+                                colors.forEach((color, index) => {
+                                        const led = document.querySelector(`.led[data-id="${index}"]`);
+                                        led.style.backgroundColor = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+                                 });
+                         });
+                });
+
+//LED Color Update
+        document.querySelectorAll('.led').forEach(led => {
+                led.addEventListener('click', () => {
+                        const id = parseInt(led.getAttribute('data-id'));
+                        const color = pickr.getColor().toRGBA();
+                        const [r, g, b] = [Math.round(color[0]), Math.round(color[1]), Math.round(color[2])];
+
+        // Update backend and UI
+                fetch('/api/set_led', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ led_index: id, color: [r, g, b] })
+                 }).then(response => response.json())
+                .then(data => {
+                        if (data.status === 'success') {
+                                led.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+                         }
+                 });
+         });
+});
+
+        // Power On/Off
+        document.getElementById('power-toggle').addEventListener('click', () => {
+            fetch('/api/power_toggle', { method: 'POST' });
+        });
+
+        // Brightness control
+        document.getElementById('brightness').addEventListener('input', event => {
+            const brightness = event.target.value;
+            fetch('/api/set_brightness', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ brightness: brightness })
+            });
+        });
+
+        // Start the dissolve animation when the button is clicked
+        document.getElementById('start-dissolve').addEventListener('click', () => {
+            const interval = parseFloat(document.getElementById('interval').value);
+            fetch('/api/start_dissolve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ interval: interval })
+            });
+        });
+
+        // Stop the dissolve animation when the button is clicked
+        document.getElementById('stop-dissolve').addEventListener('click', () => {
+            fetch('/api/stop_dissolve', { method: 'POST' });
+        });
+
+    </script>
+</body>
+</html>
