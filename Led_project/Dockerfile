@@ -18,7 +18,7 @@ RUN apt-get update && \
     make
 
 # Clone and build the ws281x library
-RUN git clone https://github.com/rpi-ws281x/rpi-ws281x-python.git /rpi_ws281x && \
+RUN git clone --recurse-submodules https://github.com/rpi-ws281x/rpi-ws281x-python /rpi_ws281x && \
     cd /rpi_ws281x/library && \
     python setup.py build && \
     python setup.py install
@@ -38,4 +38,9 @@ ENV CFLAGS="-Wno-error"
 
 # Run the command to start the app
 CMD ["python", "app.py"]
+
+
+
+
+
 
