@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  led-controller:
+    build: .
+    ports:
+      - "5000:5000"
+    privileged: true
+    volumes:
+      - .:/app
+    restart: unless-stopped
+
+
+
