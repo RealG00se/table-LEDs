@@ -8,6 +8,7 @@ services:
     privileged: true
     volumes:
       - .:/app
+    command: ["python", "led_controller.py"]
     restart: unless-stopped
 
 
